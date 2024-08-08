@@ -14,16 +14,28 @@ export const PieChart: FC<PieChartProps> = ({ data, width, height }) => {
     if (!ref.current) return;
 
     const radius = Math.min(width, height) / 2;
+
     const svg = d3
       .select(ref.current)
       .attr('viewBox', `${-width / 2} ${-height / 2} ${width} ${height}`)
       .attr('width', width)
       .attr('height', height);
 
-    // Limpar qualquer conteúdo existente
+    const tooltip = d3
+      .select('body')
+      .append('div')
+      .style('position', 'absolute')
+      .style('background', 'rgba(0, 0, 0, 0.75)')
+      .style('color', 'white')
+      .style('padding', '5px')
+      .style('border-radius', '4px')
+      .style('pointer-events', 'none')
+      .style('font-size', '12px')
+      .style('display', 'none')
+      .style('z-index', '10');
+
     svg.selectAll('*').remove();
 
-    // Define o Clipping Path
     svg
       .append('defs')
       .append('clipPath')
@@ -42,7 +54,7 @@ export const PieChart: FC<PieChartProps> = ({ data, width, height }) => {
       .outerRadius(radius);
 
     const arcs = group
-      .selectAll('arc')
+      .selectAll('g.arc')
       .data(pie(data))
       .enter()
       .append('g')
@@ -59,7 +71,18 @@ export const PieChart: FC<PieChartProps> = ({ data, width, height }) => {
           }>
         >
       )
-      .attr('fill', (_d, i) => d3.schemeCategory10[i % 10]);
+      .attr('fill', (_d, i) => d3.schemeCategory10[i % 10])
+      .on('mouseover', (_event, d) => {
+        tooltip.style('display', 'block').text(`Value: ${d.data.value}`);
+      })
+      .on('mousemove', (event) => {
+        tooltip
+          .style('left', `${event.pageX + 10}px`)
+          .style('top', `${event.pageY - 28}px`);
+      })
+      .on('mouseout', () => {
+        tooltip.style('display', 'none');
+      });
 
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
@@ -79,5 +102,14 @@ export const PieChart: FC<PieChartProps> = ({ data, width, height }) => {
     svg.call(zoom as d3.ZoomBehavior<SVGSVGElement, unknown>);
   }, [data, width, height]);
 
-  return <svg ref={ref}></svg>;
+  return (
+    <svg
+      style={{
+        border: '1px solid white',
+        borderRadius: '4px',
+        padding: '2px',
+      }}
+      ref={ref}
+    />
+  );
 };
